@@ -9,7 +9,11 @@ builder.Services.AddDbContext<ApplicationContext>(
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Логика игры
+builder.Services.AddScoped<GameLogicService>();
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -26,15 +30,16 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 app.Urls.Add("http://0.0.0.0:5000");
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// CORS
+app.UseCors("AllowAll");
+
+// Swagger
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TicTacToe API v1");
+    c.RoutePrefix = string.Empty; // Swagger будет по адресу /
+});
 app.UseAuthorization();
 
 app.MapControllers();
