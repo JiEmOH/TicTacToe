@@ -18,7 +18,5 @@ namespace TicTacToe.Data
                 .HasMaxLength(9)
                 .IsFixedLength(); // Для поля "_________" (3x3)
         }
-
-
     }
 }
