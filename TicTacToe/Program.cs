@@ -11,7 +11,7 @@ builder.Services.AddDbContext<ApplicationContext>(
 // Контроллеры
 builder.Services.AddControllers();
 
-//// Логика игры
+// Логика игры
 //builder.Services.AddScoped<GameLogicService>();
 
 // Swagger
@@ -39,8 +39,9 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "TicTacToe API v1");
-    c.RoutePrefix = string.Empty; // Swagger будет по адресу /
+    c.RoutePrefix = "swagger"; // Swagger будет по адресу /swagger
 });
+
 
 app.UseAuthorization();
 
