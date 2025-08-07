@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./TicTacToe
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    networks:
+      - ttt-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  blazor:
+    build:
+      context: ./TicTacToe.BlazorUI
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    networks:
+      - ttt-network
+
+
+networks:
+  ttt-network:
+    driver: bridge
