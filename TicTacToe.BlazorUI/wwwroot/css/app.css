@@ -124,13 +124,21 @@ code {
 }
 
     .table-tictactoe td {
-        border: 2px solid black; /* Чёрная граница средней толщины */
+        border: 2px solid black;
         width: 60px;
         height: 60px;
         text-align: center;
         vertical-align: middle;
         font-size: 24px;
-        user-select: none; /* Чтобы нельзя было выделять */
-        cursor: default;
-        background-color: white; /* Белый фон клеток */
+        user-select: none;
+        cursor: pointer; 
+        background-color: white;
     }
+
+    .table-tictactoe td:hover {
+        background-color: #d0e7ff; /* светло-голубой фон при наведении */
+        transition: background-color 0.3s ease;
+        cursor: pointer; /* чтоб курсор менялся на указатель */
+    }
+
+

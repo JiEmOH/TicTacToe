@@ -11,30 +11,136 @@
 }
 else
 {
-    <table class="table-tictactoe" style="border-collapse: collapse; margin: 20px auto; background-color: white; width: 200px;">
-        @for (int row = 0; row < board.Length; row++)
-        {
-            <tr>
-                @for (int col = 0; col < board[row].Length; col++)
-                {
-                    <td style="border: 2px solid black; width: 60px; height: 60px; text-align: center; vertical-align: middle; font-size: 24px;">
-                        @board[row][col]
-                    </td>
-                }
-            </tr>
-        }
+    <table class="table-tictactoe" style="border:1px solid black; border-collapse: collapse;">
+        <tr>
+            <td @onclick="() => MakeMove(0, 0)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(0, 0)
+            </td>
+            <td @onclick="() => MakeMove(0, 1)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(0, 1)
+            </td>
+            <td @onclick="() => MakeMove(0, 2)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(0, 2)
+            </td>
+        </tr>
+        <tr>
+            <td @onclick="() => MakeMove(1, 0)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(1, 0)
+            </td>
+            <td @onclick="() => MakeMove(1, 1)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(1, 1)
+            </td>
+            <td @onclick="() => MakeMove(1, 2)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(1, 2)
+            </td>
+        </tr>
+        <tr>
+            <td @onclick="() => MakeMove(2, 0)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(2, 0)
+            </td>
+            <td @onclick="() => MakeMove(2, 1)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(2, 1)
+            </td>
+            <td @onclick="() => MakeMove(2, 2)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
+                @GetCell(2, 2)
+            </td>
+        </tr>
     </table>
 }
 
 @code {
     private string[][]? board;
+    private string currentSymbol = "X";
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadBoard();
+    }
+
+    private async Task LoadBoard()
     {
         var response = await Http.GetFromJsonAsync<GameStateResponse>("api/game/board");
         if (response != null)
         {
             board = response.Board;
+            Console.WriteLine($"Loaded board size: {board.Length}x{(board.Length > 0 ? board[0].Length : 0)}");
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine("Failed to load board");
+        }
+    }
+
+    private string GetCell(int row, int col)
+    {
+        if (board == null) return "";
+        if (row < 0 || row >= board.Length) return "";
+        if (col < 0 || col >= board[row].Length) return "";
+        return board[row][col];
+    }
+
+    private async Task MakeMove(int row, int col)
+    {
+        Console.WriteLine($"Clicked cell at row={row}, col={col}");
+
+        if (board == null)
+        {
+            Console.WriteLine("Board is null on click.");
+            return;
+        }
+
+        if (row < 0 || row >= board.Length)
+        {
+            Console.WriteLine($"Row index out of bounds: {row}");
+            return;
+        }
+
+        if (col < 0 || col >= board[row].Length)
+        {
+            Console.WriteLine($"Col index out of bounds: {col}");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(board[row][col]))
+        {
+            Console.WriteLine($"Cell [{row},{col}] already occupied by '{board[row][col]}'");
+            return;
+        }
+
+        var move = new
+        {
+            Row = row,
+            Col = col,
+            Symbol = currentSymbol
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/game/move", move);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var gameState = await response.Content.ReadFromJsonAsync<GameStateResponse>();
+                if (gameState != null)
+                {
+                    board = gameState.Board;
+                    currentSymbol = currentSymbol == "X" ? "O" : "X";
+                    StateHasChanged();
+                }
+                else
+                {
+                    Console.WriteLine("gameState is null after deserialization");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Error making move: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception in MakeMove: {ex.Message}");
         }
     }
 
@@ -44,5 +150,3 @@ else
         public bool IsCompleted { get; set; }
     }
 }
-
-

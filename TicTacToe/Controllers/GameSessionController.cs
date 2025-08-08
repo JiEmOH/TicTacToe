@@ -16,26 +16,19 @@ public class GameController : ControllerBase
     [HttpGet("board")]
     public IActionResult GetBoard()
     {
-        var board = _logic.GetInitialBoard(); // возвращает string[][]
         return Ok(new GameStateResponse
         {
-            Board = board,
+            Board = _logic.GetBoard(),
             IsCompleted = false
         });
     }
 
-    [HttpGet("simpleboard")]
-    public IActionResult GetSimpleBoard()
+    [HttpPost("move")]
+    public IActionResult MakeMove([FromBody] MoveRequest move)
     {
-        var board = new string[][]
-        {
-        new string[] { "", "", "" },
-        new string[] { "", "", "" },
-        new string[] { "", "", "" }
-        };
-        return Ok(board);
+        var result = _logic.MakeMove(move.Row, move.Col, move.Symbol);
+        return Ok(result);
     }
-
 }
 
 

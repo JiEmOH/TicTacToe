@@ -12,11 +12,11 @@ namespace TicTacToe.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Пример настройки правил для PostgreSQL
             modelBuilder.Entity<Game>()
                 .Property(g => g.BoardState)
-                .HasMaxLength(9)
-                .IsFixedLength(); // Для поля "_________" (3x3)
+                .HasMaxLength(9) // максимум 9 символов для 3x3
+                .HasColumnType("char(9)"); // жёсткая длина 9 символов в PostgreSQL
         }
+
     }
 }
