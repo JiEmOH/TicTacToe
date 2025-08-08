@@ -112,3 +112,25 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+
+
+.table-tictactoe {
+    margin: 20px auto; /* Центрируем таблицу по горизонтали */
+    border-collapse: collapse; /* Убираем двойные границы */
+    width: 200px; /* Ширина ровно под 3 клетки */
+    background-color: white; /* Белый фон */
+    box-shadow: 0 0 5px rgba(0,0,0,0.1); /* Лёгкая тень для глубины */
+}
+
+    .table-tictactoe td {
+        border: 2px solid black; /* Чёрная граница средней толщины */
+        width: 60px;
+        height: 60px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 24px;
+        user-select: none; /* Чтобы нельзя было выделять */
+        cursor: default;
+        background-color: white; /* Белый фон клеток */
+    }

@@ -2,7 +2,7 @@
 {
     public class GameStateResponse
     {
-        public string[][] Board { get; set; } = Array.Empty<string[]>();
+        public string[][] Board { get; set; }
         public bool IsCompleted { get; set; }
     }
 }

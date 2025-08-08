@@ -1,32 +1,42 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TicTacToe.DTO;
 using TicTacToe.Services;
+using TicTacToe.DTO;
 
-namespace TicTacToe.Controllers
+[ApiController]
+[Route("api/game")]
+public class GameController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class GameSessionController : ControllerBase
+    private readonly GameLogicService _logic;
+
+    public GameController(GameLogicService logic)
     {
-        private readonly GameLogicService _logic;
-
-        public GameSessionController(GameLogicService logic)
-        {
-            _logic = logic;
-        }
-
-        [HttpGet("board")]
-        public IActionResult GetBoard()
-        {
-            var board = _logic.GetInitialBoard();
-
-            return Ok(new GameStateResponse
-            {
-                Board = board,
-                IsCompleted = false
-            });
-        }
+        _logic = logic;
     }
+
+    [HttpGet("board")]
+    public IActionResult GetBoard()
+    {
+        var board = _logic.GetInitialBoard(); // возвращает string[][]
+        return Ok(new GameStateResponse
+        {
+            Board = board,
+            IsCompleted = false
+        });
+    }
+
+    [HttpGet("simpleboard")]
+    public IActionResult GetSimpleBoard()
+    {
+        var board = new string[][]
+        {
+        new string[] { "", "", "" },
+        new string[] { "", "", "" },
+        new string[] { "", "", "" }
+        };
+        return Ok(board);
+    }
+
 }
+
 
 

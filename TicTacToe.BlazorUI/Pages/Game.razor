@@ -1,0 +1,48 @@
+﻿@page "/game"
+@inject HttpClient Http
+
+<PageTitle>Game</PageTitle>
+
+<h1>Tic Tac Toe</h1>
+
+@if (board == null)
+{
+    <p><em>Loading board...</em></p>
+}
+else
+{
+    <table class="table-tictactoe" style="border-collapse: collapse; margin: 20px auto; background-color: white; width: 200px;">
+        @for (int row = 0; row < board.Length; row++)
+        {
+            <tr>
+                @for (int col = 0; col < board[row].Length; col++)
+                {
+                    <td style="border: 2px solid black; width: 60px; height: 60px; text-align: center; vertical-align: middle; font-size: 24px;">
+                        @board[row][col]
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+}
+
+@code {
+    private string[][]? board;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<GameStateResponse>("api/game/board");
+        if (response != null)
+        {
+            board = response.Board;
+        }
+    }
+
+    public class GameStateResponse
+    {
+        public string[][] Board { get; set; } = Array.Empty<string[]>();
+        public bool IsCompleted { get; set; }
+    }
+}
+
+
