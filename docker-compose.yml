@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -11,6 +9,7 @@ services:
       - ttt-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:5000
 
   blazor:
     build:
@@ -22,7 +21,6 @@ services:
       - api
     networks:
       - ttt-network
-
 
 networks:
   ttt-network:

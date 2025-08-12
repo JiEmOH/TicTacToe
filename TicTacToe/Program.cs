@@ -4,12 +4,22 @@ using TicTacToe.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DbContext (если понадобится)
+// DbContext: InMemory by default for simpler dev, Npgsql when configured
+var useInMemory = builder.Configuration.GetValue("UseInMemory", true);
 builder.Services.AddDbContext<ApplicationContext>(options =>
-    options.UseNpgsql("Host=localhost;Username=myuser;Password=mypassword;Database=TicTacToe"));
+{
+    if (useInMemory)
+    {
+        options.UseInMemoryDatabase("TicTacToeDb");
+    }
+    else
+    {
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+});
 
-// Singleton — чтобы состояние игры сохранялось в сервисе
-builder.Services.AddSingleton<GameLogicService>();
+// Р›РѕРіРёРєСѓ РёРіСЂС‹ СЂРµРіРёСЃС‚СЂРёСЂСѓРµРј Р±РµР· СЃРѕСЃС‚РѕСЏРЅРёСЏ
+builder.Services.AddTransient<GameLogicService>();
 
 builder.Services.AddControllers();
 
@@ -26,7 +36,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.Urls.Add("http://0.0.0.0:5000");
+// Р”Р»СЏ РєРѕРЅС‚РµР№РЅРµСЂР°/СЂР°Р·СЂР°Р±РѕС‚РєРё РјРѕР¶РЅРѕ Р·Р°РґР°РІР°С‚СЊ С‡РµСЂРµР· РїРµСЂРµРјРµРЅРЅСѓСЋ ASPNETCORE_URLS
+// app.Urls.Add("http://0.0.0.0:5000");
 
 app.UseCors("AllowAll");
 
@@ -37,10 +48,8 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;
 });
 
-// Можно добавить, если нужно HTTPS редирект
 // app.UseHttpsRedirection();
 
-// Если не используешь авторизацию — можно не вызывать
 app.UseAuthorization();
 
 app.MapControllers();
