@@ -1,16 +1,36 @@
-﻿@page "/game"
+@page "/game"
 @inject HttpClient Http
 
 <PageTitle>Game</PageTitle>
 
 <h1>Tic Tac Toe</h1>
 
-@if (board == null)
+@if (gameId == Guid.Empty)
+{
+    <button @onclick="CreateGame">Create Game</button>
+}
+else if (board == null)
 {
     <p><em>Loading board...</em></p>
 }
 else
 {
+    <p>Game: @gameId</p>
+    <p>Your symbol: <b>@assignedSymbol</b> | Current turn: <b>@currentTurnSymbol</b></p>
+    @if (isCompleted)
+    {
+        <p>
+            @if (isDraw)
+            {
+                <b>Draw!</b>
+            }
+            else
+            {
+                <b>Winner: @winnerSymbol</b>
+            }
+        </p>
+    }
+
     <table class="table-tictactoe" style="border:1px solid black; border-collapse: collapse;">
         <tr>
             <td @onclick="() => MakeMove(0, 0)" style="border:1px solid black; width:50px; height:50px; text-align:center; font-size:24px;">
@@ -49,26 +69,54 @@ else
 }
 
 @code {
+    private Guid gameId = Guid.Empty;
     private string[][]? board;
-    private string currentSymbol = "X";
+    private string assignedSymbol = "X";
+    private string currentTurnSymbol = "X";
+    private bool isCompleted = false;
+    private bool isDraw = false;
+    private string? winnerSymbol;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBoard();
+        // Optionally auto-create for demo
+        await CreateGame();
     }
 
-    private async Task LoadBoard()
+    private async Task CreateGame()
     {
-        var response = await Http.GetFromJsonAsync<GameStateResponse>("api/game/board");
+        var createResponse = await Http.PostAsync("api/game", null);
+        if (!createResponse.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Create game failed: {createResponse.StatusCode}");
+            return;
+        }
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateGameResponse>();
+        if (created == null)
+        {
+            Console.WriteLine("Failed to parse create response");
+            return;
+        }
+        gameId = created.GameId;
+        assignedSymbol = created.AssignedSymbol;
+        await LoadState();
+    }
+
+    private async Task LoadState()
+    {
+        var response = await Http.GetFromJsonAsync<GameStateResponse>($"api/game/{gameId}");
         if (response != null)
         {
             board = response.Board;
-            Console.WriteLine($"Loaded board size: {board.Length}x{(board.Length > 0 ? board[0].Length : 0)}");
+            currentTurnSymbol = response.CurrentTurnSymbol;
+            isCompleted = response.IsCompleted;
+            isDraw = response.IsDraw;
+            winnerSymbol = response.WinnerSymbol;
             StateHasChanged();
         }
         else
         {
-            Console.WriteLine("Failed to load board");
+            Console.WriteLine("Failed to load state");
         }
     }
 
@@ -82,55 +130,26 @@ else
 
     private async Task MakeMove(int row, int col)
     {
-        Console.WriteLine($"Clicked cell at row={row}, col={col}");
+        if (board == null || gameId == Guid.Empty) return;
+        if (isCompleted) return;
+        if (!string.Equals(assignedSymbol, currentTurnSymbol, StringComparison.OrdinalIgnoreCase)) return;
+        if (!string.IsNullOrEmpty(board[row][col])) return;
 
-        if (board == null)
-        {
-            Console.WriteLine("Board is null on click.");
-            return;
-        }
-
-        if (row < 0 || row >= board.Length)
-        {
-            Console.WriteLine($"Row index out of bounds: {row}");
-            return;
-        }
-
-        if (col < 0 || col >= board[row].Length)
-        {
-            Console.WriteLine($"Col index out of bounds: {col}");
-            return;
-        }
-
-        if (!string.IsNullOrEmpty(board[row][col]))
-        {
-            Console.WriteLine($"Cell [{row},{col}] already occupied by '{board[row][col]}'");
-            return;
-        }
-
-        var move = new
-        {
-            Row = row,
-            Col = col,
-            Symbol = currentSymbol
-        };
-
+        var move = new MoveRequest { Row = row, Col = col, Symbol = assignedSymbol };
         try
         {
-            var response = await Http.PostAsJsonAsync("api/game/move", move);
-
+            var response = await Http.PostAsJsonAsync($"api/game/{gameId}/move", move);
             if (response.IsSuccessStatusCode)
             {
                 var gameState = await response.Content.ReadFromJsonAsync<GameStateResponse>();
                 if (gameState != null)
                 {
                     board = gameState.Board;
-                    currentSymbol = currentSymbol == "X" ? "O" : "X";
+                    currentTurnSymbol = gameState.CurrentTurnSymbol;
+                    isCompleted = gameState.IsCompleted;
+                    isDraw = gameState.IsDraw;
+                    winnerSymbol = gameState.WinnerSymbol;
                     StateHasChanged();
-                }
-                else
-                {
-                    Console.WriteLine("gameState is null after deserialization");
                 }
             }
             else
@@ -148,5 +167,21 @@ else
     {
         public string[][] Board { get; set; } = Array.Empty<string[]>();
         public bool IsCompleted { get; set; }
+        public bool IsDraw { get; set; }
+        public string? WinnerSymbol { get; set; }
+        public string CurrentTurnSymbol { get; set; } = "X";
+    }
+
+    public class CreateGameResponse
+    {
+        public Guid GameId { get; set; }
+        public string AssignedSymbol { get; set; } = "X";
+    }
+
+    public class MoveRequest
+    {
+        public int Row { get; set; }
+        public int Col { get; set; }
+        public string Symbol { get; set; } = "X";
     }
 }

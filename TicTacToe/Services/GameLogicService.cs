@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -8,116 +8,112 @@ namespace TicTacToe.Services
 {
     public class GameLogicService
     {
-        private const int size = 3;
-        private string boardState;
-        private bool isCompleted = false;
+        private const int BoardSize = 3;
         private readonly ILogger<GameLogicService>? _logger;
 
-        // Внедрим ILogger опционально для отладки
         public GameLogicService(ILogger<GameLogicService>? logger = null)
         {
             _logger = logger;
-            boardState = new string('_', size * size);
-            boardState = NormalizeBoardState(boardState);
-            _logger?.LogInformation("Init boardState: '{State}' len={Len}", boardState, boardState.Length);
         }
 
-        // Гарантируем ровно size*size символов; удаляем пробелы, обрезаем или дополняем '_'
-        private string NormalizeBoardState(string? state)
+        public string InitializeBoardState()
+        {
+            return new string('_', BoardSize * BoardSize);
+        }
+
+        public string NormalizeBoardState(string? state)
         {
             if (string.IsNullOrEmpty(state))
-                return new string('_', size * size);
+                return InitializeBoardState();
 
-            // Убираем пробелы, которые могли появиться из-за fixed-length колонок
             state = state.Trim();
 
-            if (state.Length == size * size)
+            if (state.Length == BoardSize * BoardSize)
                 return state;
 
-            if (state.Length > size * size)
-                return state.Substring(0, size * size);
+            if (state.Length > BoardSize * BoardSize)
+                return state.Substring(0, BoardSize * BoardSize);
 
-            return state.PadRight(size * size, '_');
+            return state.PadRight(BoardSize * BoardSize, '_');
         }
 
-        public string[][] GetBoard()
+        public string[][] ConvertBoardToMatrix(string boardState)
         {
-            boardState = NormalizeBoardState(boardState);
-
-            var board = new string[size][];
-            for (int i = 0; i < size; i++)
+            var normalized = NormalizeBoardState(boardState);
+            var board = new string[BoardSize][];
+            for (int i = 0; i < BoardSize; i++)
             {
-                board[i] = new string[size];
-                for (int j = 0; j < size; j++)
+                board[i] = new string[BoardSize];
+                for (int j = 0; j < BoardSize; j++)
                 {
-                    int idx = i * size + j;
-                    // Защита индекса — если что-то не так, считаем клетку пустой
-                    char c = idx < boardState.Length ? boardState[idx] : '_';
-                    board[i][j] = c == '_' ? "" : c.ToString();
+                    int idx = i * BoardSize + j;
+                    char c = idx < normalized.Length ? normalized[idx] : '_';
+                    board[i][j] = c == '_' ? string.Empty : c.ToString();
                 }
             }
             return board;
         }
 
-        public GameStateResponse MakeMove(int row, int col, string symbol)
+        public bool TryApplyMove(in string currentBoardState, int row, int col, string symbol, out string newBoardState)
         {
-            boardState = NormalizeBoardState(boardState);
+            newBoardState = NormalizeBoardState(currentBoardState);
 
-            if (isCompleted)
-                return new GameStateResponse { Board = GetBoard(), IsCompleted = true };
+            if (string.IsNullOrWhiteSpace(symbol))
+                return false;
+            char s = char.ToUpperInvariant(symbol[0]);
+            if (s != 'X' && s != 'O')
+                return false;
 
-            if (row < 0 || row >= size || col < 0 || col >= size)
-                return new GameStateResponse { Board = GetBoard(), IsCompleted = isCompleted };
+            if (row < 0 || row >= BoardSize || col < 0 || col >= BoardSize)
+                return false;
 
-            int idx = row * size + col;
+            int idx = row * BoardSize + col;
+            if (idx >= newBoardState.Length)
+                return false;
 
-            if (idx >= boardState.Length) // дополнительная защита
-            {
-                boardState = NormalizeBoardState(boardState);
-                if (idx >= boardState.Length)
-                    return new GameStateResponse { Board = GetBoard(), IsCompleted = isCompleted };
-            }
+            if (newBoardState[idx] != '_')
+                return false;
 
-            if (boardState[idx] != '_')
-                return new GameStateResponse { Board = GetBoard(), IsCompleted = isCompleted };
-
-            var arr = boardState.ToCharArray();
-            arr[idx] = symbol.Length > 0 ? symbol[0] : '_';
-            boardState = new string(arr);
-            boardState = NormalizeBoardState(boardState);
-
-            isCompleted = CheckWin(symbol);
-
-            _logger?.LogInformation("Move: {Sym} @ {R},{C} => boardState='{State}' len={Len}", symbol, row, col, boardState, boardState.Length);
-
-            return new GameStateResponse
-            {
-                Board = GetBoard(),
-                IsCompleted = isCompleted
-            };
+            var arr = newBoardState.ToCharArray();
+            arr[idx] = s;
+            newBoardState = new string(arr);
+            return true;
         }
 
-        private bool CheckWin(string symbol)
+        public bool CheckWin(string boardState, string symbol)
         {
-            char s = symbol[0];
+            var normalized = NormalizeBoardState(boardState);
+            char s = char.ToUpperInvariant(symbol[0]);
             var lines = new List<int[]>();
 
-            for (int i = 0; i < size; i++)
-                lines.Add(Enumerable.Range(i * size, size).ToArray());
+            for (int i = 0; i < BoardSize; i++)
+                lines.Add(Enumerable.Range(i * BoardSize, BoardSize).ToArray());
 
-            for (int i = 0; i < size; i++)
-                lines.Add(Enumerable.Range(0, size).Select(x => x * size + i).ToArray());
+            for (int i = 0; i < BoardSize; i++)
+                lines.Add(Enumerable.Range(0, BoardSize).Select(x => x * BoardSize + i).ToArray());
 
-            lines.Add(Enumerable.Range(0, size).Select(i => i * size + i).ToArray());
-            lines.Add(Enumerable.Range(0, size).Select(i => i * size + (size - 1 - i)).ToArray());
+            lines.Add(Enumerable.Range(0, BoardSize).Select(i => i * BoardSize + i).ToArray());
+            lines.Add(Enumerable.Range(0, BoardSize).Select(i => i * BoardSize + (BoardSize - 1 - i)).ToArray());
 
             foreach (var line in lines)
             {
-                if (line.All(idx => idx < boardState.Length && boardState[idx] == s))
+                if (line.All(idx => idx < normalized.Length && normalized[idx] == s))
                     return true;
             }
 
             return false;
+        }
+
+        public bool CheckDraw(string boardState)
+        {
+            var normalized = NormalizeBoardState(boardState);
+            return normalized.All(c => c == 'X' || c == 'O');
+        }
+
+        public string ToggleSymbol(string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol)) return "X";
+            return char.ToUpperInvariant(symbol[0]) == 'X' ? "O" : "X";
         }
     }
 }
